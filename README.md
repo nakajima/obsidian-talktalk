@@ -28,6 +28,19 @@ npm run dev     # watch mode
 npm test        # tokenizer and WASM integration tests
 ```
 
+## Release
+
+Set the same version in `manifest.json` and `package.json`, commit the change,
+then push a tag without a `v` prefix:
+
+```sh
+git tag 0.2.0
+git push origin 0.2.0
+```
+
+The release workflow tests and builds the plugin, then publishes `main.js`,
+`manifest.json`, and `styles.css` as individual GitHub release assets for BRAT.
+
 ## Install in a vault
 
 Copy (or symlink) `manifest.json`, `main.js`, and `styles.css` into
