@@ -6,19 +6,6 @@ import {
 import { TalkRunner } from "./talkRunner";
 import { TalkRuntime } from "./talkRuntime";
 
-export interface TalkCodePosition {
-  line: number;
-  ch: number;
-}
-
-interface CaretDocument {
-  caretPositionFromPoint?: (
-    x: number,
-    y: number,
-  ) => { offsetNode: Node; offset: number } | null;
-  caretRangeFromPoint?: (x: number, y: number) => Range | null;
-}
-
 export class TalkCodeBlock extends MarkdownRenderChild {
   private abortController: AbortController | null = null;
   private outputEl!: HTMLElement;
@@ -30,7 +17,6 @@ export class TalkCodeBlock extends MarkdownRenderChild {
     private readonly source: string,
     private readonly runtime: TalkRuntime,
     private readonly runner: TalkRunner,
-    private readonly requestEdit: (position: TalkCodePosition) => boolean,
   ) {
     super(containerEl);
   }
@@ -59,10 +45,13 @@ export class TalkCodeBlock extends MarkdownRenderChild {
       this.toggleRun();
     });
     this.registerDomEvent(code, "click", (event) => {
-      const position = this.positionAtPoint(code, event.clientX, event.clientY);
-      if (this.requestEdit(position)) {
+      const editButton = this.containerEl
+        .closest(".cm-preview-code-block")
+        ?.querySelector<HTMLElement>(".edit-block-button");
+      if (editButton) {
         event.preventDefault();
         event.stopPropagation();
+        editButton.click();
       }
     });
   }
@@ -129,33 +118,6 @@ export class TalkCodeBlock extends MarkdownRenderChild {
     const label = running ? "Stop TalkTalk code" : "Run TalkTalk code";
     this.runButton.setAttribute("aria-label", label);
     this.runButton.setAttribute("title", label);
-  }
-
-  private positionAtPoint(
-    code: HTMLElement,
-    clientX: number,
-    clientY: number,
-  ): TalkCodePosition {
-    const caretDocument = document as unknown as CaretDocument;
-    const position = caretDocument.caretPositionFromPoint?.(clientX, clientY);
-    const fallbackRange = position
-      ? null
-      : caretDocument.caretRangeFromPoint?.(clientX, clientY);
-    const node = position?.offsetNode ?? fallbackRange?.startContainer;
-    const offset = position?.offset ?? fallbackRange?.startOffset;
-
-    if (!node || offset === undefined || (node !== code && !code.contains(node))) {
-      return { line: 0, ch: 0 };
-    }
-
-    const prefixRange = document.createRange();
-    prefixRange.selectNodeContents(code);
-    prefixRange.setEnd(node, offset);
-    const lines = prefixRange.toString().split("\n");
-    return {
-      line: lines.length - 1,
-      ch: lines[lines.length - 1].length,
-    };
   }
 
   private renderOutputSection(label: string, value: string): void {
