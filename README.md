@@ -1,15 +1,17 @@
 # TalkTalk Obsidian plugin
 
-Syntax highlighting for TalkTalk code in ` ```tlk ` code blocks.
+WASM-powered syntax highlighting and execution for TalkTalk code in
+` ```tlk ` code blocks.
 
 ## How it works
 
-Reading mode: Obsidian highlights code blocks with Prism.js. The plugin waits
-for Obsidian's Prism instance (`loadPrism()`) and registers
-`Prism.languages.tlk`, mirroring the [upstream TalkTalk TextMate grammar](https://github.com/nakajima/talk/blob/main/dev/editors/vscode/syntax/talktalk.tmLanguage.json).
+Reading mode: the plugin loads the vendored TalkTalk WebAssembly compiler and
+uses its parser-backed highlighter to render each `tlk` block. Every block has
+a Run button. Programs execute in a dedicated Web Worker with a two-second
+timeout, so an infinite loop cannot block Obsidian's UI thread.
 
 Source mode and Live Preview (while editing inside a fence): Obsidian's
-editor is CodeMirror 6, which knows nothing about Prism. The plugin registers
+editor is CodeMirror 6. The plugin registers
 a small CM6 ViewPlugin (`src/tlkHighlighter.ts`) that scans for ` ```tlk `
 fences and decorates tokens with the `cm-*` classes Obsidian themes already
 style (`cm-keyword`, `cm-string`, `cm-comment`, `cm-number`, `cm-variable`).
@@ -23,12 +25,12 @@ highlighted separately from the surrounding string, unlike in Reading mode.
 npm install
 npm run build   # production bundle -> main.js
 npm run dev     # watch mode
-npm test        # tokenizer unit tests
+npm test        # tokenizer and WASM integration tests
 ```
 
 ## Install in a vault
 
-Copy (or symlink) `manifest.json` and `main.js` into
+Copy (or symlink) `manifest.json`, `main.js`, and `styles.css` into
 `<vault>/.obsidian/plugins/talktalk/`, then enable "TalkTalk" under
 Settings -> Community plugins (with Restricted Mode off).
 

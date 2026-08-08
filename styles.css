@@ -1,0 +1,109 @@
+.talktalk-block {
+  margin: 1em 0;
+}
+
+.talktalk-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--background-modifier-border);
+  border-bottom: 0;
+  border-radius: var(--radius-s) var(--radius-s) 0 0;
+  background: var(--background-secondary);
+}
+
+.talktalk-run-button {
+  min-width: 4rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-s);
+}
+
+.talktalk-code {
+  margin: 0;
+  border-radius: 0 0 var(--radius-s) var(--radius-s);
+}
+
+.talktalk-output {
+  display: none;
+  margin-top: 0.5rem;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+}
+
+.talktalk-output.is-visible {
+  display: block;
+}
+
+.talktalk-output.is-error {
+  border-color: var(--text-error);
+  color: var(--text-error);
+}
+
+.talktalk-output-status,
+.talktalk-output-label {
+  padding: 0.5rem 0.75rem;
+}
+
+.talktalk-output-label {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-semibold);
+}
+
+.talktalk-output-section + .talktalk-output-section {
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.talktalk-output-section pre {
+  margin: 0;
+  border-radius: 0;
+}
+
+.talktalk-code .comment {
+  color: var(--code-comment);
+}
+
+.talktalk-code .keyword,
+.talktalk-code .modifier {
+  color: var(--code-keyword);
+}
+
+.talktalk-code .string {
+  color: var(--code-string);
+}
+
+.talktalk-code .number {
+  color: var(--code-value);
+}
+
+.talktalk-code .operator {
+  color: var(--code-operator);
+}
+
+.talktalk-code .function,
+.talktalk-code .method,
+.talktalk-code .macro {
+  color: var(--code-function);
+}
+
+.talktalk-code .type,
+.talktalk-code .class,
+.talktalk-code .enum,
+.talktalk-code .interface,
+.talktalk-code .struct,
+.talktalk-code .type_parameter {
+  color: var(--code-tag);
+}
+
+.talktalk-code .parameter,
+.talktalk-code .property,
+.talktalk-code .variable {
+  color: var(--code-property);
+}
+
+.talktalk-code .effect,
+.talktalk-code .decorator,
+.talktalk-code .event {
+  color: var(--code-important);
+}
