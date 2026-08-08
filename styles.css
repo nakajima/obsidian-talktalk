@@ -23,6 +23,10 @@
   background: transparent;
 }
 
+.cm-preview-code-block .talktalk-run-button {
+  right: calc(18px + var(--size-2-3, 6px) * 2 + var(--size-2-2, 4px));
+}
+
 .talktalk-run-button:hover,
 .talktalk-run-button:focus-visible {
   color: var(--text-normal);
@@ -75,6 +79,10 @@
 
 .talktalk-code > code {
   display: block;
+}
+
+.cm-preview-code-block .talktalk-code {
+  padding-right: 4.5rem;
 }
 
 .talktalk-output {
