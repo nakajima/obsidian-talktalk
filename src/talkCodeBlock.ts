@@ -6,6 +6,11 @@ import {
 import { TalkRunner } from "./talkRunner";
 import { TalkRuntime } from "./talkRuntime";
 
+export interface TalkCodeBlockOptions {
+  noRun: boolean;
+  sourceForRun(): string | Promise<string>;
+}
+
 export class TalkCodeBlock extends MarkdownRenderChild {
   private abortController: AbortController | null = null;
   private outputEl!: HTMLElement;
@@ -17,6 +22,7 @@ export class TalkCodeBlock extends MarkdownRenderChild {
     private readonly source: string,
     private readonly runtime: TalkRuntime,
     private readonly runner: TalkRunner,
+    private readonly options: TalkCodeBlockOptions,
   ) {
     super(containerEl);
   }
@@ -25,25 +31,28 @@ export class TalkCodeBlock extends MarkdownRenderChild {
     this.containerEl.empty();
     this.containerEl.addClass("talktalk-block");
 
-    this.runButton = this.containerEl.createEl("button", {
-      cls: "talktalk-run-button",
-      attr: { type: "button", "aria-label": "Run TalkTalk code" },
-    });
-    this.runButtonSurface = this.runButton.createSpan({
-      cls: "talktalk-run-button-surface",
-    });
-    this.setRunning(false);
+    if (!this.options.noRun) {
+      this.containerEl.addClass("has-run-button");
+      this.runButton = this.containerEl.createEl("button", {
+        cls: "talktalk-run-button",
+        attr: { type: "button", "aria-label": "Run TalkTalk code" },
+      });
+      this.runButtonSurface = this.runButton.createSpan({
+        cls: "talktalk-run-button-surface",
+      });
+      this.setRunning(false);
+      this.registerDomEvent(this.runButton, "click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        this.toggleRun();
+      });
+    }
 
     const pre = this.containerEl.createEl("pre", { cls: "talktalk-code" });
     const code = pre.createEl("code");
     code.appendChild(sanitizeHTMLToDom(this.runtime.highlight(this.source)));
 
     this.outputEl = this.containerEl.createDiv({ cls: "talktalk-output" });
-    this.registerDomEvent(this.runButton, "click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      this.toggleRun();
-    });
     this.registerDomEvent(code, "click", (event) => {
       const editButton = this.containerEl
         .closest(".cm-preview-code-block")
@@ -83,7 +92,9 @@ export class TalkCodeBlock extends MarkdownRenderChild {
     this.outputEl.createDiv({ cls: "talktalk-output-status", text: "Running..." });
 
     try {
-      const result = await this.runner.run(this.source, controller.signal);
+      const source = await this.options.sourceForRun();
+      if (controller.signal.aborted) return;
+      const result = await this.runner.run(source, controller.signal);
       this.outputEl.empty();
 
       if (result.output.length > 0) {

@@ -72,9 +72,12 @@
 
 .talktalk-code {
   margin: 0;
-  padding-right: 2rem;
   border-radius: var(--radius-s);
   cursor: text;
+}
+
+.talktalk-block.has-run-button .talktalk-code {
+  padding-right: 2rem;
 }
 
 .talktalk-code > code {
@@ -82,6 +85,10 @@
 }
 
 .cm-preview-code-block .talktalk-code {
+  padding-right: 2.25rem;
+}
+
+.cm-preview-code-block .talktalk-block.has-run-button .talktalk-code {
   padding-right: 4.5rem;
 }
 

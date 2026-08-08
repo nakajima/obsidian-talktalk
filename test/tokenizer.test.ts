@@ -1,5 +1,6 @@
 import { Text } from "@codemirror/state";
 import {
+  accumulatedTalkSource,
   findTalkCodeBlockAt,
   findTalkCodeBlocks,
   utf16Offset,
@@ -26,6 +27,22 @@ check("open ```tlk", matchOpeningFence("```tlk")?.len === 3);
 check("open ~~~~tlk", matchOpeningFence("~~~~tlk")?.char === "~");
 check("open with indent", matchOpeningFence("  ```tlk") !== null);
 check("open with info", matchOpeningFence("```tlk some info") !== null);
+check(
+  "parse named accumulation",
+  matchOpeningFence("```tlk accumulate(func)")?.accumulateGroup === "func",
+);
+check(
+  "parse anonymous accumulation",
+  matchOpeningFence("```tlk accumulate")?.accumulateGroup === "",
+);
+check(
+  "parse norun",
+  matchOpeningFence("```tlk accumulate(func) norun")?.noRun === true,
+);
+check(
+  "reject malformed accumulation",
+  matchOpeningFence("```tlk accumulate(func")?.accumulateGroup === null,
+);
 check("reject js", matchOpeningFence("```js") === null);
 check("reject tlkx", matchOpeningFence("```tlkx") === null);
 check("close exact", isClosingFence("```", "`", 3));
@@ -67,6 +84,48 @@ check(
   findTalkCodeBlocks(Text.of(["```tlk", "let value = 42"]))[0]?.source ===
     "let value = 42",
 );
+
+const accumulationDoc = Text.of([
+  "```tlk accumulate(alpha) norun",
+  "func add(x, y) { x + y }",
+  "```",
+  "prose does not break accumulation",
+  "```tlk accumulate(beta)",
+  "let other = 1",
+  "```",
+  "more prose",
+  "```tlk accumulate(alpha)",
+  "add(1, 2)",
+  "```",
+  "```js",
+  "const reset = true",
+  "```",
+  "```tlk accumulate(alpha)",
+  "add(3, 4)",
+  "```",
+]);
+const accumulationBlocks = findTalkCodeBlocks(accumulationDoc);
+const accumulatedAlpha = accumulatedTalkSource(
+  accumulationBlocks,
+  accumulationBlocks[2],
+);
+check("index norun block", accumulationBlocks[0]?.noRun === true);
+check(
+  "accumulate same named group across prose and other groups",
+  accumulatedAlpha.source ===
+    "func add(x, y) { x + y }\n\nadd(1, 2)",
+);
+check(
+  "track current accumulated source offset",
+  accumulatedAlpha.currentUtf16Offset ===
+    "func add(x, y) { x + y }\n\n".length,
+);
+check(
+  "non-accumulating code block resets accumulation",
+  accumulatedTalkSource(accumulationBlocks, accumulationBlocks[3]).source ===
+    "add(3, 4)",
+);
+
 check("UTF-16 to UTF-8 offset", utf8ByteOffset("a😀b", 3) === 5);
 check("UTF-8 to UTF-16 offset", utf16Offset("a😀b", 5) === 3);
 

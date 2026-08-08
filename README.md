@@ -14,11 +14,24 @@ Source mode and Live Preview (while editing inside a fence): Obsidian's
 CodeMirror 6 editor provides diagnostics, inferred-type hover, and scope/member
 completion from a persistent TalkTalk analysis worker. A separate CM6
 ViewPlugin (`src/tlkHighlighter.ts`) decorates tokens with the `cm-*` classes
-Obsidian themes already style. Each fenced block is analyzed as an independent
-TalkTalk document.
+Obsidian themes already style. Blocks are independent unless they opt into
+accumulation.
 
 Run **Format TalkTalk code block** from the command palette while the cursor is
 inside a `tlk` fence to format that block.
+
+### Accumulated examples
+
+Fence metadata mirrors the TalkTalk website:
+
+- `accumulate` includes prior contiguous anonymous accumulating blocks.
+- `accumulate(name)` includes prior contiguous blocks in the same named group.
+- Prose and differently named accumulating groups do not break a sequence.
+- Any non-accumulating code block ends the sequence.
+- `norun` contributes source without displaying a Run button.
+
+Accumulated source is used for execution, diagnostics, hover, and completion.
+Formatting and highlighting still apply only to the current block.
 
 Known parity gap: inside the editor, string escapes (e.g. `\n`) are not
 highlighted separately from the surrounding string, unlike in Reading mode.

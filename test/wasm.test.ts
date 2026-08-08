@@ -33,6 +33,10 @@ check("highlighted source escapes HTML", !escaped.includes("<script>"));
 
 const result = runProgram("1 + 2 + 3") as Record<string, unknown>;
 check("WASM runs a program", result.value === "6");
+const accumulatedResult = runProgram(
+  "func add(x, y) { x + y }\n\nadd(1, 2)",
+) as Record<string, unknown>;
+check("WASM runs accumulated source", accumulatedResult.value === "3");
 
 const diagnostics = checkSource("let x: Missing = 1") as {
   diagnostics?: Array<{ message?: string }>;

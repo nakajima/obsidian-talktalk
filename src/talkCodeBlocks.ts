@@ -1,21 +1,71 @@
 import { Text } from "@codemirror/state";
 
+export interface TalkFence {
+  char: string;
+  len: number;
+  accumulateGroup: string | null;
+  noRun: boolean;
+}
+
 export interface TalkCodeBlock {
   from: number;
   to: number;
   contentFrom: number;
   contentTo: number;
   source: string;
+  accumulateGroup: string | null;
+  accumulationChain: number | null;
+  noRun: boolean;
+}
+
+export interface AccumulatedTalkSource {
+  source: string;
+  currentSource: string;
+  currentUtf16Offset: number;
+  currentByteOffset: number;
+}
+
+interface MarkdownFence extends TalkFence {
+  isTalk: boolean;
 }
 
 const blocksByDocument = new WeakMap<Text, readonly TalkCodeBlock[]>();
 
-export function matchOpeningFence(
-  text: string,
-): { char: string; len: number } | null {
-  const match = /^\s*(`{3,}|~{3,})[ \t]*tlk(?:[ \t]+.*)?$/.exec(text);
+function accumulateGroup(info: string): string | null {
+  const marker = "accumulate";
+  const start = info.indexOf(marker);
+  if (start === -1) return null;
+
+  const rest = info.slice(start + marker.length).trimStart();
+  if (!rest.startsWith("(")) return "";
+  const end = rest.indexOf(")", 1);
+  return end === -1 ? null : rest.slice(1, end).trim();
+}
+
+function matchMarkdownFence(text: string): MarkdownFence | null {
+  const match = /^\s*(`{3,}|~{3,})[ \t]*([^ \t]*)(?:[ \t]+(.*))?$/.exec(text);
   if (!match) return null;
-  return { char: match[1][0], len: match[1].length };
+
+  const info = match[3] ?? "";
+  const isTalk = match[2] === "tlk";
+  return {
+    char: match[1][0],
+    len: match[1].length,
+    isTalk,
+    accumulateGroup: isTalk ? accumulateGroup(info) : null,
+    noRun: isTalk && info.includes("norun"),
+  };
+}
+
+export function matchOpeningFence(text: string): TalkFence | null {
+  const fence = matchMarkdownFence(text);
+  if (!fence?.isTalk) return null;
+  return {
+    char: fence.char,
+    len: fence.len,
+    accumulateGroup: fence.accumulateGroup,
+    noRun: fence.noRun,
+  };
 }
 
 export function isClosingFence(
@@ -36,44 +86,68 @@ export function findTalkCodeBlocks(doc: Text): readonly TalkCodeBlock[] {
   if (cached) return cached;
 
   const blocks: TalkCodeBlock[] = [];
+  let nextChain = 0;
+  let activeChain: number | null = null;
   let open:
-    | { from: number; contentFrom: number; char: string; len: number }
+    | {
+        from: number;
+        contentFrom: number;
+        fence: MarkdownFence;
+        accumulationChain: number | null;
+      }
     | null = null;
 
   for (let lineNumber = 1; lineNumber <= doc.lines; lineNumber++) {
     const line = doc.line(lineNumber);
     if (open) {
-      if (isClosingFence(line.text, open.char, open.len)) {
-        const contentTo = Math.max(open.contentFrom, line.from - 1);
-        blocks.push({
-          from: open.from,
-          to: line.to,
-          contentFrom: open.contentFrom,
-          contentTo,
-          source: doc.sliceString(open.contentFrom, contentTo),
-        });
+      if (isClosingFence(line.text, open.fence.char, open.fence.len)) {
+        if (open.fence.isTalk) {
+          const contentTo = Math.max(open.contentFrom, line.from - 1);
+          blocks.push({
+            from: open.from,
+            to: line.to,
+            contentFrom: open.contentFrom,
+            contentTo,
+            source: doc.sliceString(open.contentFrom, contentTo),
+            accumulateGroup: open.fence.accumulateGroup,
+            accumulationChain: open.accumulationChain,
+            noRun: open.fence.noRun,
+          });
+        }
         open = null;
       }
       continue;
     }
 
-    const fence = matchOpeningFence(line.text);
-    if (fence) {
-      open = {
-        from: line.from,
-        contentFrom: Math.min(line.to + 1, doc.length),
-        ...fence,
-      };
+    const fence = matchMarkdownFence(line.text);
+    if (!fence) continue;
+
+    let accumulationChain: number | null = null;
+    if (fence.isTalk && fence.accumulateGroup !== null) {
+      if (activeChain === null) activeChain = nextChain++;
+      accumulationChain = activeChain;
+    } else {
+      activeChain = null;
     }
+
+    open = {
+      from: line.from,
+      contentFrom: Math.min(line.to + 1, doc.length),
+      fence,
+      accumulationChain,
+    };
   }
 
-  if (open) {
+  if (open?.fence.isTalk) {
     blocks.push({
       from: open.from,
       to: doc.length,
       contentFrom: open.contentFrom,
       contentTo: doc.length,
       source: doc.sliceString(open.contentFrom),
+      accumulateGroup: open.fence.accumulateGroup,
+      accumulationChain: open.accumulationChain,
+      noRun: open.fence.noRun,
     });
   }
 
@@ -91,6 +165,38 @@ export function findTalkCodeBlockAt(
         position >= block.contentFrom && position <= block.contentTo,
     ) ?? null
   );
+}
+
+export function accumulatedTalkSource(
+  blocks: readonly TalkCodeBlock[],
+  current: TalkCodeBlock,
+): AccumulatedTalkSource {
+  const priorSources: string[] = [];
+  if (
+    current.accumulateGroup !== null &&
+    current.accumulationChain !== null
+  ) {
+    const currentIndex = blocks.indexOf(current);
+    for (let index = currentIndex - 1; index >= 0; index--) {
+      const candidate = blocks[index];
+      if (candidate.accumulationChain !== current.accumulationChain) break;
+      if (
+        candidate.accumulateGroup === current.accumulateGroup &&
+        candidate.source.trim().length > 0
+      ) {
+        priorSources.unshift(candidate.source);
+      }
+    }
+  }
+
+  const prefix = priorSources.join("\n\n");
+  const currentPrefix = prefix.length > 0 ? `${prefix}\n\n` : "";
+  return {
+    source: `${currentPrefix}${current.source}`,
+    currentSource: current.source,
+    currentUtf16Offset: currentPrefix.length,
+    currentByteOffset: utf8ByteOffset(currentPrefix, currentPrefix.length),
+  };
 }
 
 export function utf8ByteOffset(source: string, utf16Offset: number): number {
