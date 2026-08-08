@@ -23,6 +23,7 @@ export class TalkCodeBlock extends MarkdownRenderChild {
   private abortController: AbortController | null = null;
   private outputEl!: HTMLElement;
   private runButton!: HTMLButtonElement;
+  private runButtonSurface!: HTMLSpanElement;
 
   constructor(
     containerEl: HTMLElement,
@@ -41,6 +42,9 @@ export class TalkCodeBlock extends MarkdownRenderChild {
     this.runButton = this.containerEl.createEl("button", {
       cls: "talktalk-run-button",
       attr: { type: "button", "aria-label": "Run TalkTalk code" },
+    });
+    this.runButtonSurface = this.runButton.createSpan({
+      cls: "talktalk-run-button-surface",
     });
     this.setRunning(false);
 
@@ -120,7 +124,7 @@ export class TalkCodeBlock extends MarkdownRenderChild {
   }
 
   private setRunning(running: boolean): void {
-    setIcon(this.runButton, running ? "square" : "play");
+    setIcon(this.runButtonSurface, running ? "square" : "play");
     this.runButton.classList.toggle("is-running", running);
     const label = running ? "Stop TalkTalk code" : "Run TalkTalk code";
     this.runButton.setAttribute("aria-label", label);
