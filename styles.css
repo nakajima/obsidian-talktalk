@@ -5,13 +5,14 @@
 
 .talktalk-run-button {
   position: absolute;
-  top: 0.4rem;
-  right: 0.4rem;
+  top: 0.125rem;
+  right: 0.25rem;
   z-index: 1;
   display: flex;
-  width: 40px;
-  min-width: 40px;
-  height: 40px;
+  box-sizing: border-box;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
   align-items: center;
   justify-content: center;
   padding: 0;
@@ -20,6 +21,12 @@
   box-shadow: none;
   color: var(--text-muted);
   background: var(--background-primary);
+}
+
+.talktalk-run-button::before {
+  position: absolute;
+  inset: -8px;
+  content: "";
 }
 
 .talktalk-run-button:hover,
@@ -33,8 +40,8 @@
 }
 
 .talktalk-run-button .svg-icon {
-  width: 18px;
-  height: 18px;
+  width: 12px;
+  height: 12px;
 }
 
 @media (hover: hover) {
@@ -49,7 +56,7 @@
 
 .talktalk-code {
   margin: 0;
-  padding-right: 3.25rem;
+  padding-right: 2rem;
   border-radius: var(--radius-s);
   cursor: text;
 }
