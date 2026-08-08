@@ -1,7 +1,7 @@
 # TalkTalk Obsidian plugin
 
-WASM-powered syntax highlighting and execution for TalkTalk code in
-` ```tlk ` code blocks.
+WASM-powered syntax highlighting, language intelligence, and execution for
+TalkTalk code in ` ```tlk ` code blocks.
 
 ## How it works
 
@@ -11,10 +11,14 @@ a Run button. Programs execute in a dedicated Web Worker with a two-second
 timeout, so an infinite loop cannot block Obsidian's UI thread.
 
 Source mode and Live Preview (while editing inside a fence): Obsidian's
-editor is CodeMirror 6. The plugin registers
-a small CM6 ViewPlugin (`src/tlkHighlighter.ts`) that scans for ` ```tlk `
-fences and decorates tokens with the `cm-*` classes Obsidian themes already
-style (`cm-keyword`, `cm-string`, `cm-comment`, `cm-number`, `cm-variable`).
+CodeMirror 6 editor provides diagnostics, inferred-type hover, and scope/member
+completion from a persistent TalkTalk analysis worker. A separate CM6
+ViewPlugin (`src/tlkHighlighter.ts`) decorates tokens with the `cm-*` classes
+Obsidian themes already style. Each fenced block is analyzed as an independent
+TalkTalk document.
+
+Run **Format TalkTalk code block** from the command palette while the cursor is
+inside a `tlk` fence to format that block.
 
 Known parity gap: inside the editor, string escapes (e.g. `\n`) are not
 highlighted separately from the surrounding string, unlike in Reading mode.

@@ -6,11 +6,16 @@ import {
   ViewPlugin,
   ViewUpdate,
 } from "@codemirror/view";
+import {
+  isClosingFence,
+  matchOpeningFence,
+} from "./talkCodeBlocks";
 
-// Same grammar as the Prism definition in main.ts and TalkTalk's upstream
-// TextMate grammar, hand-rolled so we can apply it to fenced code blocks in
-// the editor. Decorations use the cm-*
-// classes that Obsidian themes already style.
+export { isClosingFence, matchOpeningFence } from "./talkCodeBlocks";
+
+// Lightweight editor highlighting that mirrors TalkTalk's upstream TextMate
+// grammar. Reading mode and language analysis use the compiler-backed WASM
+// implementation. Decorations use the cm-* classes Obsidian themes style.
 
 export const KEYWORDS = new Set([
   "func",
@@ -36,21 +41,6 @@ interface Token {
   from: number;
   to: number;
   cls: string;
-}
-
-export function matchOpeningFence(text: string): { char: string; len: number } | null {
-  const m = /^\s*(`{3,}|~{3,})[ \t]*tlk(?:[ \t]+.*)?$/.exec(text);
-  if (!m) return null;
-  return { char: m[1][0], len: m[1].length };
-}
-
-export function isClosingFence(text: string, char: string, len: number): boolean {
-  const trimmed = text.trim();
-  if (trimmed.length < len) return false;
-  for (const c of trimmed) {
-    if (c !== char) return false;
-  }
-  return true;
 }
 
 export function tokenizeLine(

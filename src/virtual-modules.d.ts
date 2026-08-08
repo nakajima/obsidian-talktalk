@@ -7,3 +7,8 @@ declare module "talktalk:runner-worker" {
   const source: string;
   export default source;
 }
+
+declare module "talktalk:language-worker" {
+  const source: string;
+  export default source;
+}

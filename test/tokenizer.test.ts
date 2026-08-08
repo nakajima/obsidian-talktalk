@@ -1,3 +1,10 @@
+import { Text } from "@codemirror/state";
+import {
+  findTalkCodeBlockAt,
+  findTalkCodeBlocks,
+  utf16Offset,
+  utf8ByteOffset,
+} from "../src/talkCodeBlocks";
 import {
   matchOpeningFence,
   isClosingFence,
@@ -26,6 +33,42 @@ check("close longer", isClosingFence("`````", "`", 3));
 check("reject shorter", !isClosingFence("``", "`", 3));
 check("reject mixed", !isClosingFence("`~`", "`", 3));
 check("reject text", !isClosingFence("``` x", "`", 3));
+
+// Code block indexing
+const indexedDoc = Text.of(
+  [
+    "before",
+    "```tlk",
+    "let value = 42",
+    "value",
+    "```",
+    "```js",
+    "ignored",
+    "```",
+  ],
+);
+const indexedBlocks = findTalkCodeBlocks(indexedDoc);
+check("find tlk code block", indexedBlocks.length === 1);
+check(
+  "extract code block source",
+  indexedBlocks[0]?.source === "let value = 42\nvalue",
+);
+check(
+  "find block at content position",
+  findTalkCodeBlockAt(indexedDoc, indexedBlocks[0].contentFrom + 2)
+    ?.contentFrom === indexedBlocks[0].contentFrom,
+);
+check(
+  "ignore opening fence position",
+  findTalkCodeBlockAt(indexedDoc, indexedBlocks[0].from) === null,
+);
+check(
+  "index unclosed tlk block",
+  findTalkCodeBlocks(Text.of(["```tlk", "let value = 42"]))[0]?.source ===
+    "let value = 42",
+);
+check("UTF-16 to UTF-8 offset", utf8ByteOffset("a😀b", 3) === 5);
+check("UTF-8 to UTF-16 offset", utf16Offset("a😀b", 5) === 3);
 
 // Tokenizer
 function toks(text: string, blockComment = { value: false }) {

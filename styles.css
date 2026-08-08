@@ -122,6 +122,17 @@
   border-radius: 0;
 }
 
+.talktalk-hover {
+  max-width: min(32rem, 80vw);
+  padding: 0.4rem 0.6rem;
+}
+
+.talktalk-hover code {
+  color: var(--text-normal);
+  background: transparent;
+  white-space: pre-wrap;
+}
+
 .talktalk-code .comment {
   color: var(--code-comment);
 }

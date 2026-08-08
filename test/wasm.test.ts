@@ -1,6 +1,10 @@
 import {
+  check as checkSource,
+  format,
   highlight,
+  hover,
   initSync,
+  Repl,
   run_program as runProgram,
 } from "../vendor/talk-wasm/talk_wasm.js";
 import wasmBase64 from "../vendor/talk-wasm/talk_wasm_bg.wasm";
@@ -29,6 +33,36 @@ check("highlighted source escapes HTML", !escaped.includes("<script>"));
 
 const result = runProgram("1 + 2 + 3") as Record<string, unknown>;
 check("WASM runs a program", result.value === "6");
+
+const diagnostics = checkSource("let x: Missing = 1") as {
+  diagnostics?: Array<{ message?: string }>;
+};
+check(
+  "WASM returns diagnostics",
+  diagnostics.diagnostics?.[0]?.message === "Undefined name: Missing",
+);
+
+const analyzed = "let answer = 42\nanswer";
+const hovered = hover(
+  analyzed,
+  analyzed.lastIndexOf("answer"),
+  undefined,
+  undefined,
+  undefined,
+) as { hover?: { contents?: string } | null };
+check("WASM returns hover types", hovered.hover?.contents === "answer: Int");
+
+const repl = new Repl();
+const completions = repl.complete(analyzed, analyzed.length) as {
+  start?: number;
+  items?: Array<{ replacement?: string }>;
+};
+repl.free();
+check(
+  "WASM returns completions",
+  completions.start === 16 && completions.items?.[0]?.replacement === "answer",
+);
+check("WASM formats source", format("let x=1") === "let x = 1");
 
 if (failures > 0) process.exit(1);
 console.log("all WASM tests passed");

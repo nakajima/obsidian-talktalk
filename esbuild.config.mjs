@@ -4,19 +4,27 @@ import builtins from "builtin-modules";
 
 const prod = process.argv[2] === "production";
 
-const runnerWorkerPlugin = {
-  name: "runner-worker",
+const workerEntries = new Map([
+  ["talktalk:runner-worker", "src/runner.worker.ts"],
+  ["talktalk:language-worker", "src/language.worker.ts"],
+]);
+
+const workerSourcePlugin = {
+  name: "worker-source",
   setup(build) {
-    build.onResolve({ filter: /^talktalk:runner-worker$/ }, (args) => ({
+    build.onResolve({ filter: /^talktalk:(runner|language)-worker$/ }, (args) => ({
       path: args.path,
-      namespace: "runner-worker",
+      namespace: "worker-source",
     }));
 
     build.onLoad(
-      { filter: /.*/, namespace: "runner-worker" },
-      async () => {
+      { filter: /.*/, namespace: "worker-source" },
+      async (args) => {
+        const entryPoint = workerEntries.get(args.path);
+        if (!entryPoint) throw new Error(`Unknown worker: ${args.path}`);
+
         const result = await esbuild.build({
-          entryPoints: ["src/runner.worker.ts"],
+          entryPoints: [entryPoint],
           bundle: true,
           format: "iife",
           platform: "browser",
@@ -30,10 +38,7 @@ const runnerWorkerPlugin = {
         return {
           contents: `export default ${JSON.stringify(source)};`,
           loader: "js",
-          watchFiles: [
-            "src/runner.worker.ts",
-            "vendor/talk-wasm/talk_wasm.js",
-          ],
+          watchFiles: [entryPoint, "vendor/talk-wasm/talk_wasm.js"],
         };
       },
     );
@@ -65,7 +70,7 @@ const context = await esbuild.context({
   // wasm-bindgen includes an unused URL fallback; we always pass a compiled module.
   logOverride: { "empty-import-meta": "silent" },
   loader: { ".wasm": "base64" },
-  plugins: [runnerWorkerPlugin],
+  plugins: [workerSourcePlugin],
   sourcemap: prod ? false : "inline",
   treeShaking: true,
   outfile: "main.js",

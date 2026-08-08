@@ -1,4 +1,5 @@
 import {
+  format as formatWithWasm,
   highlight as highlightWithWasm,
   initSync as initTalkWasm,
 } from "../vendor/talk-wasm/talk_wasm.js";
@@ -25,5 +26,9 @@ export class TalkRuntime {
 
   highlight(source: string): string {
     return highlightWithWasm(source);
+  }
+
+  format(source: string): string {
+    return formatWithWasm(source);
   }
 }
