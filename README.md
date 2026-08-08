@@ -38,8 +38,8 @@ Set the same version in `manifest.json` and `package.json`, commit the change,
 then push a tag without a `v` prefix:
 
 ```sh
-git tag 0.3.3
-git push origin 0.3.3
+git tag 0.4.0
+git push origin 0.4.0
 ```
 
 The release workflow tests and builds the plugin, then publishes `main.js`,
