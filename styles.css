@@ -129,6 +129,20 @@
   border-radius: 0;
 }
 
+body .cm-tooltip:has(.talktalk-diagnostic-message),
+body .cm-tooltip:has(.talktalk-hover) {
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-normal);
+  background-color: var(--background-primary);
+  box-shadow: var(--shadow-s);
+}
+
+body .cm-tooltip:has(.talktalk-diagnostic-message)
+  .cm-tooltip-section:not(:first-child),
+body .cm-tooltip:has(.talktalk-hover) .cm-tooltip-section:not(:first-child) {
+  border-top-color: var(--background-modifier-border);
+}
+
 .talktalk-hover {
   max-width: min(32rem, 80vw);
   padding: 0.4rem 0.6rem;

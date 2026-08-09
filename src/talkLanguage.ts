@@ -39,6 +39,12 @@ function diagnosticForBlock(
     severity: diagnostic.severity,
     source: "TalkTalk",
     message: diagnostic.message,
+    renderMessage: () => {
+      const message = document.createElement("span");
+      message.className = "talktalk-diagnostic-message";
+      message.textContent = diagnostic.message;
+      return message;
+    },
   };
 }
 
