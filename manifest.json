@@ -1,7 +1,7 @@
 {
   "id": "talktalk",
   "name": "TalkTalk",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "minAppVersion": "1.4.0",
   "description": "Run, analyze, and highlight TalkTalk code blocks with WebAssembly.",
   "author": "talktalk",
