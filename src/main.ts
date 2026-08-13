@@ -10,6 +10,7 @@ import {
 import { TalkCodeBlock } from "./talkCodeBlock";
 import {
   accumulatedTalkSource,
+  AccumulatedTalkSource,
   findTalkCodeBlockAt,
   findTalkCodeBlocks,
   matchOpeningFence,
@@ -35,24 +36,38 @@ export default class TalkTalkPlugin extends Plugin {
 
     const runner = new TalkRunner(runtime);
     this.register(() => runner.dispose());
+
+    let languageService: TalkLanguageService | undefined;
+    try {
+      const service = new TalkLanguageService(runtime);
+      languageService = service;
+      this.register(() => service.dispose());
+    } catch (error) {
+      console.error("Failed to create TalkTalk language service", error);
+    }
+
     this.registerMarkdownCodeBlockProcessor("tlk", (source, el, ctx) => {
+      const accumulatedSource = () =>
+        this.accumulatedSourceForContext(ctx, el, source);
       ctx.addChild(
         new TalkCodeBlock(el, source, runtime, runner, {
           noRun: this.noRunForContext(ctx, el, source),
-          sourceForRun: () =>
-            this.accumulatedSourceForContext(ctx, el, source),
+          languageService,
+          sourceForAnalysis: accumulatedSource,
+          sourceForRun: async () => (await accumulatedSource()).source,
         }),
       );
     });
     this.registerFormatCommand(runtime);
 
-    try {
-      const languageService = new TalkLanguageService(runtime);
-      this.register(() => languageService.dispose());
-      await languageService.initialize();
-      this.registerEditorExtension(talkLanguageSupport(languageService));
-    } catch (error) {
-      console.error("Failed to initialize TalkTalk language service", error);
+    if (languageService) {
+      try {
+        await languageService.initialize();
+        this.registerEditorExtension(talkLanguageSupport(languageService));
+      } catch (error) {
+        languageService = undefined;
+        console.error("Failed to initialize TalkTalk language service", error);
+      }
     }
   }
 
@@ -75,7 +90,7 @@ export default class TalkTalkPlugin extends Plugin {
     ctx: MarkdownPostProcessorContext,
     el: HTMLElement,
     source: string,
-  ): Promise<string> {
+  ): Promise<AccumulatedTalkSource> {
     const editorView = this.editorViewFor(el);
     if (editorView) {
       return this.accumulatedSourceFromDocument(
@@ -87,7 +102,7 @@ export default class TalkTalkPlugin extends Plugin {
     }
 
     const file = this.app.vault.getAbstractFileByPath(ctx.sourcePath);
-    if (!(file instanceof TFile)) return source;
+    if (!(file instanceof TFile)) return this.unaccumulatedSource(source);
     const markdown = (await this.app.vault.cachedRead(file)).replace(/\r\n/g, "\n");
     return this.accumulatedSourceFromDocument(
       Text.of(markdown.split("\n")),
@@ -107,10 +122,21 @@ export default class TalkTalkPlugin extends Plugin {
     ctx: MarkdownPostProcessorContext,
     el: HTMLElement,
     source: string,
-  ): string {
+  ): AccumulatedTalkSource {
     const blocks = findTalkCodeBlocks(doc);
     const current = this.indexedBlockForContext(doc, ctx, el, source);
-    return current ? accumulatedTalkSource(blocks, current).source : source;
+    return current
+      ? accumulatedTalkSource(blocks, current)
+      : this.unaccumulatedSource(source);
+  }
+
+  private unaccumulatedSource(source: string): AccumulatedTalkSource {
+    return {
+      source,
+      currentSource: source,
+      currentUtf16Offset: 0,
+      currentByteOffset: 0,
+    };
   }
 
   private indexedBlockForContext(

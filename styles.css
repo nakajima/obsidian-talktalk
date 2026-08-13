@@ -92,6 +92,58 @@
   padding-right: 4.5rem;
 }
 
+.talktalk-diagnostics {
+  display: none;
+  margin-top: 0.5rem;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+}
+
+.talktalk-diagnostics.is-visible {
+  display: block;
+}
+
+.talktalk-diagnostic {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.4rem 0.75rem;
+  font-size: var(--font-ui-small);
+}
+
+.talktalk-diagnostic + .talktalk-diagnostic {
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.talktalk-diagnostic-severity {
+  font-weight: var(--font-semibold);
+}
+
+.talktalk-diagnostic-error .talktalk-diagnostic-severity {
+  color: var(--text-error);
+}
+
+.talktalk-diagnostic-warning .talktalk-diagnostic-severity {
+  color: var(--text-warning);
+}
+
+.talktalk-diagnostic-info .talktalk-diagnostic-severity,
+.talktalk-diagnostic-location {
+  color: var(--text-muted);
+}
+
+.talktalk-diagnostic-location {
+  font-family: var(--font-monospace);
+  font-size: var(--font-smaller);
+}
+
+.talktalk-diagnostic-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .talktalk-output {
   display: none;
   margin-top: 0.5rem;

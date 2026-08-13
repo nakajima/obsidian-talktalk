@@ -3,16 +3,26 @@ import {
   sanitizeHTMLToDom,
   setIcon,
 } from "obsidian";
+import {
+  AccumulatedTalkSource,
+  utf16Offset,
+  utf8ByteOffset,
+} from "./talkCodeBlocks";
+import { TalkLanguageService } from "./talkLanguageService";
 import { TalkRunner } from "./talkRunner";
 import { TalkRuntime } from "./talkRuntime";
 
 export interface TalkCodeBlockOptions {
   noRun: boolean;
+  languageService?: TalkLanguageService;
+  sourceForAnalysis(): AccumulatedTalkSource | Promise<AccumulatedTalkSource>;
   sourceForRun(): string | Promise<string>;
 }
 
 export class TalkCodeBlock extends MarkdownRenderChild {
   private abortController: AbortController | null = null;
+  private diagnosticsEl!: HTMLElement;
+  private unloaded = false;
   private outputEl!: HTMLElement;
   private runButton!: HTMLButtonElement;
   private runButtonSurface!: HTMLSpanElement;
@@ -52,6 +62,12 @@ export class TalkCodeBlock extends MarkdownRenderChild {
     const code = pre.createEl("code");
     code.appendChild(sanitizeHTMLToDom(this.runtime.highlight(this.source)));
 
+    this.diagnosticsEl = this.containerEl.createDiv({
+      cls: "talktalk-diagnostics",
+      attr: { "aria-live": "polite" },
+    });
+    if (this.options.languageService) void this.renderDiagnostics();
+
     this.outputEl = this.containerEl.createDiv({ cls: "talktalk-output" });
     this.registerDomEvent(code, "click", (event) => {
       const editButton = this.containerEl
@@ -66,7 +82,69 @@ export class TalkCodeBlock extends MarkdownRenderChild {
   }
 
   onunload(): void {
+    this.unloaded = true;
     this.abortController?.abort();
+  }
+
+  private async renderDiagnostics(): Promise<void> {
+    const service = this.options.languageService;
+    if (!service) return;
+
+    try {
+      const accumulated = await this.options.sourceForAnalysis();
+      const diagnostics = await service.check(accumulated.source);
+      if (this.unloaded) return;
+
+      const currentByteEnd =
+        accumulated.currentByteOffset +
+        utf8ByteOffset(
+          accumulated.currentSource,
+          accumulated.currentSource.length,
+        );
+      const currentDiagnostics = diagnostics.filter(
+        (diagnostic) =>
+          diagnostic.range.start >= accumulated.currentByteOffset &&
+          diagnostic.range.start <= currentByteEnd,
+      );
+      if (currentDiagnostics.length === 0) return;
+
+      this.diagnosticsEl.addClass("is-visible");
+      for (const diagnostic of currentDiagnostics) {
+        const localByteOffset =
+          diagnostic.range.start - accumulated.currentByteOffset;
+        const localOffset = utf16Offset(
+          accumulated.currentSource,
+          localByteOffset,
+        );
+        const beforeDiagnostic = accumulated.currentSource.slice(
+          0,
+          localOffset,
+        );
+        const line = beforeDiagnostic.split("\n").length;
+        const column = localOffset - beforeDiagnostic.lastIndexOf("\n");
+        const item = this.diagnosticsEl.createDiv({
+          cls: `talktalk-diagnostic talktalk-diagnostic-${diagnostic.severity}`,
+        });
+        item.createSpan({
+          cls: "talktalk-diagnostic-severity",
+          text:
+            diagnostic.severity.charAt(0).toUpperCase() +
+            diagnostic.severity.slice(1),
+        });
+        item.createSpan({
+          cls: "talktalk-diagnostic-location",
+          text: `${line}:${column}`,
+        });
+        item.createSpan({
+          cls: "talktalk-diagnostic-text",
+          text: diagnostic.message,
+        });
+      }
+    } catch (error) {
+      if (!this.unloaded) {
+        console.error("TalkTalk rendered diagnostics failed", error);
+      }
+    }
   }
 
   private toggleRun(): void {

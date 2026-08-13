@@ -6,9 +6,10 @@ TalkTalk code in ` ```tlk ` code blocks.
 ## How it works
 
 Reading mode: the plugin loads the vendored TalkTalk WebAssembly compiler and
-uses its parser-backed highlighter to render each `tlk` block. Every block has
-a Run button. Programs execute in a dedicated Web Worker with a two-second
-timeout, so an infinite loop cannot block Obsidian's UI thread.
+uses its parser-backed highlighter to render each `tlk` block. Diagnostics are
+shown inline beneath rendered blocks, and every block has a Run button. Programs
+execute in a dedicated Web Worker with a two-second timeout, so an infinite loop
+cannot block Obsidian's UI thread.
 
 Source mode and Live Preview (while editing inside a fence): Obsidian's
 CodeMirror 6 editor provides diagnostics, inferred-type hover, and scope/member
