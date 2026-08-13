@@ -145,6 +145,7 @@
 }
 
 .talktalk-output {
+  position: relative;
   display: none;
   margin-top: 0.5rem;
   border: 1px solid var(--background-modifier-border);
@@ -161,12 +162,40 @@
   color: var(--text-error);
 }
 
+.talktalk-output-close {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  display: flex;
+  width: 1.75rem;
+  height: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  color: var(--text-muted);
+  background: transparent;
+}
+
+.talktalk-output-close:hover,
+.talktalk-output-close:focus-visible {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.talktalk-output-close .svg-icon {
+  width: 14px;
+  height: 14px;
+}
+
 .talktalk-output-status,
 .talktalk-output-label {
   padding: 0.5rem 0.75rem;
 }
 
 .talktalk-output-label {
+  padding-right: 2.5rem;
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
   font-weight: var(--font-semibold);

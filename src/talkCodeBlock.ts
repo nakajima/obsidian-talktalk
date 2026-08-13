@@ -23,6 +23,7 @@ export class TalkCodeBlock extends MarkdownRenderChild {
   private abortController: AbortController | null = null;
   private diagnosticsEl!: HTMLElement;
   private unloaded = false;
+  private outputContentEl!: HTMLElement;
   private outputEl!: HTMLElement;
   private runButton!: HTMLButtonElement;
   private runButtonSurface!: HTMLSpanElement;
@@ -69,6 +70,35 @@ export class TalkCodeBlock extends MarkdownRenderChild {
     if (this.options.languageService) void this.renderDiagnostics();
 
     this.outputEl = this.containerEl.createDiv({ cls: "talktalk-output" });
+    const closeOutputButton = this.outputEl.createEl("button", {
+      cls: "talktalk-output-close",
+      attr: {
+        type: "button",
+        "aria-label": "Close TalkTalk output",
+        title: "Close output",
+      },
+    });
+    setIcon(closeOutputButton, "x");
+    this.registerDomEvent(closeOutputButton, "click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.closeOutput();
+    });
+    this.registerDomEvent(this.containerEl.ownerDocument, "keydown", (event) => {
+      if (
+        event.key !== "Escape" ||
+        !this.outputEl.classList.contains("is-visible")
+      ) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      this.closeOutput();
+    });
+    this.outputContentEl = this.outputEl.createDiv({
+      cls: "talktalk-output-content",
+      attr: { "aria-live": "polite" },
+    });
     this.registerDomEvent(code, "click", (event) => {
       const editButton = this.containerEl
         .closest(".cm-preview-code-block")
@@ -150,8 +180,8 @@ export class TalkCodeBlock extends MarkdownRenderChild {
   private toggleRun(): void {
     if (this.abortController) {
       this.abortController.abort();
-      this.outputEl.empty();
-      this.outputEl.createDiv({
+      this.outputContentEl.empty();
+      this.outputContentEl.createDiv({
         cls: "talktalk-output-status",
         text: "Execution cancelled.",
       });
@@ -164,16 +194,19 @@ export class TalkCodeBlock extends MarkdownRenderChild {
     const controller = new AbortController();
     this.abortController = controller;
     this.setRunning(true);
-    this.outputEl.empty();
+    this.outputContentEl.empty();
     this.outputEl.removeClass("is-error");
     this.outputEl.addClass("is-visible");
-    this.outputEl.createDiv({ cls: "talktalk-output-status", text: "Running..." });
+    this.outputContentEl.createDiv({
+      cls: "talktalk-output-status",
+      text: "Running...",
+    });
 
     try {
       const source = await this.options.sourceForRun();
       if (controller.signal.aborted) return;
       const result = await this.runner.run(source, controller.signal);
-      this.outputEl.empty();
+      this.outputContentEl.empty();
 
       if (result.output.length > 0) {
         this.renderOutputSection("Output", result.output);
@@ -182,16 +215,16 @@ export class TalkCodeBlock extends MarkdownRenderChild {
         this.renderOutputSection("Result", result.value);
       }
       if (result.output.length === 0 && result.value.length === 0) {
-        this.outputEl.createDiv({
+        this.outputContentEl.createDiv({
           cls: "talktalk-output-status",
           text: "Finished with no output.",
         });
       }
     } catch (error) {
       if (controller.signal.aborted) return;
-      this.outputEl.empty();
+      this.outputContentEl.empty();
       this.outputEl.addClass("is-error");
-      this.outputEl.createDiv({
+      this.outputContentEl.createDiv({
         cls: "talktalk-output-status",
         text: error instanceof Error ? error.message : String(error),
       });
@@ -199,6 +232,10 @@ export class TalkCodeBlock extends MarkdownRenderChild {
       if (this.abortController === controller) this.abortController = null;
       this.setRunning(false);
     }
+  }
+
+  private closeOutput(): void {
+    this.outputEl.removeClass("is-visible");
   }
 
   private setRunning(running: boolean): void {
@@ -210,7 +247,9 @@ export class TalkCodeBlock extends MarkdownRenderChild {
   }
 
   private renderOutputSection(label: string, value: string): void {
-    const section = this.outputEl.createDiv({ cls: "talktalk-output-section" });
+    const section = this.outputContentEl.createDiv({
+      cls: "talktalk-output-section",
+    });
     section.createDiv({ cls: "talktalk-output-label", text: label });
     section.createEl("pre").createEl("code").setText(value);
   }
