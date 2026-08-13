@@ -3,6 +3,7 @@ import { EditorView } from "@codemirror/view";
 import {
   Editor,
   MarkdownPostProcessorContext,
+  normalizePath,
   Notice,
   Plugin,
   TFile,
@@ -21,18 +22,30 @@ import { talkLanguageSupport } from "./talkLanguage";
 import { TalkLanguageService } from "./talkLanguageService";
 import { TalkRunner } from "./talkRunner";
 import { TalkRuntime } from "./talkRuntime";
+import { TalkTalkSettingTab } from "./settings";
+import { readOverrideBytes } from "./wasmUpdater";
 
 export default class TalkTalkPlugin extends Plugin {
+  get pluginDir(): string {
+    return (
+      this.manifest.dir ??
+      normalizePath(`${this.app.vault.configDir}/plugins/${this.manifest.id}`)
+    );
+  }
+
   async onload(): Promise<void> {
     this.registerEditorExtension(tlkHighlighter);
 
     let runtime: TalkRuntime;
     try {
-      runtime = await TalkRuntime.load();
+      const overrideBytes = await readOverrideBytes(this.app, this.pluginDir);
+      runtime = await TalkRuntime.load(overrideBytes);
     } catch (error) {
       console.error("Failed to load TalkTalk WASM", error);
       return;
     }
+
+    this.addSettingTab(new TalkTalkSettingTab(this.app, this, runtime));
 
     const runner = new TalkRunner(runtime);
     this.register(() => runner.dispose());
