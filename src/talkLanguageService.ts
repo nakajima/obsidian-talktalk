@@ -93,6 +93,10 @@ export class TalkLanguageService {
     } catch {
       this.worker.postMessage({ type: "init", module: runtime.bytes });
     }
+
+    // Warm the core type-check cache in the background; the first
+    // analysis in a fresh wasm instance can take ~10 seconds.
+    void this.ready.then(() => this.check("1")).catch(() => {});
   }
 
   initialize(): Promise<void> {

@@ -3,13 +3,21 @@ import {
   run_program as runProgram,
 } from "../vendor/talk-wasm/talk_wasm.js";
 
-interface RunRequest {
+interface InitRequest {
+  type: "init";
   module: WebAssembly.Module | Uint8Array;
+}
+
+interface RunRequest {
+  type: "run";
+  id: number;
   source: string;
 }
 
 interface WorkerScope {
-  onmessage: ((event: MessageEvent<RunRequest>) => void) | null;
+  onmessage:
+    | ((event: MessageEvent<InitRequest | RunRequest>) => void)
+    | null;
   postMessage(message: unknown): void;
 }
 
@@ -45,12 +53,31 @@ function describeError(error: unknown): string {
 }
 
 const worker = globalThis as unknown as WorkerScope;
+let initialized = false;
+
 worker.onmessage = ({ data }) => {
+  if (data.type === "init") {
+    try {
+      if (!initialized) {
+        initTalkWasm({ module: data.module });
+        initialized = true;
+      }
+      worker.postMessage({ type: "ready" });
+    } catch (error) {
+      worker.postMessage({ type: "init-error", error: describeError(error) });
+    }
+    return;
+  }
+
   try {
-    initTalkWasm({ module: data.module });
     const result = runProgram(data.source);
-    worker.postMessage({ ok: true, result });
+    worker.postMessage({ type: "run", id: data.id, ok: true, result });
   } catch (error) {
-    worker.postMessage({ ok: false, error: describeError(error) });
+    worker.postMessage({
+      type: "run",
+      id: data.id,
+      ok: false,
+      error: describeError(error),
+    });
   }
 };
