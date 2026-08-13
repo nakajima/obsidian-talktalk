@@ -121,9 +121,9 @@ check(
     "func add(x, y) { x + y }\n\n".length,
 );
 check(
-  "non-accumulating code block resets accumulation",
+  "non-accumulating code block does not break accumulation",
   accumulatedTalkSource(accumulationBlocks, accumulationBlocks[3]).source ===
-    "add(3, 4)",
+    "func add(x, y) { x + y }\n\nadd(1, 2)\n\nadd(3, 4)",
 );
 
 check("UTF-16 to UTF-8 offset", utf8ByteOffset("a😀b", 3) === 5);

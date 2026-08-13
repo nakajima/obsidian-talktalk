@@ -14,7 +14,6 @@ export interface TalkCodeBlock {
   contentTo: number;
   source: string;
   accumulateGroup: string | null;
-  accumulationChain: number | null;
   noRun: boolean;
 }
 
@@ -86,14 +85,11 @@ export function findTalkCodeBlocks(doc: Text): readonly TalkCodeBlock[] {
   if (cached) return cached;
 
   const blocks: TalkCodeBlock[] = [];
-  let nextChain = 0;
-  let activeChain: number | null = null;
   let open:
     | {
         from: number;
         contentFrom: number;
         fence: MarkdownFence;
-        accumulationChain: number | null;
       }
     | null = null;
 
@@ -110,7 +106,6 @@ export function findTalkCodeBlocks(doc: Text): readonly TalkCodeBlock[] {
             contentTo,
             source: doc.sliceString(open.contentFrom, contentTo),
             accumulateGroup: open.fence.accumulateGroup,
-            accumulationChain: open.accumulationChain,
             noRun: open.fence.noRun,
           });
         }
@@ -122,19 +117,10 @@ export function findTalkCodeBlocks(doc: Text): readonly TalkCodeBlock[] {
     const fence = matchMarkdownFence(line.text);
     if (!fence) continue;
 
-    let accumulationChain: number | null = null;
-    if (fence.isTalk && fence.accumulateGroup !== null) {
-      if (activeChain === null) activeChain = nextChain++;
-      accumulationChain = activeChain;
-    } else {
-      activeChain = null;
-    }
-
     open = {
       from: line.from,
       contentFrom: Math.min(line.to + 1, doc.length),
       fence,
-      accumulationChain,
     };
   }
 
@@ -146,7 +132,6 @@ export function findTalkCodeBlocks(doc: Text): readonly TalkCodeBlock[] {
       contentTo: doc.length,
       source: doc.sliceString(open.contentFrom),
       accumulateGroup: open.fence.accumulateGroup,
-      accumulationChain: open.accumulationChain,
       noRun: open.fence.noRun,
     });
   }
@@ -172,19 +157,14 @@ export function accumulatedTalkSource(
   current: TalkCodeBlock,
 ): AccumulatedTalkSource {
   const priorSources: string[] = [];
-  if (
-    current.accumulateGroup !== null &&
-    current.accumulationChain !== null
-  ) {
+  if (current.accumulateGroup !== null) {
     const currentIndex = blocks.indexOf(current);
-    for (let index = currentIndex - 1; index >= 0; index--) {
-      const candidate = blocks[index];
-      if (candidate.accumulationChain !== current.accumulationChain) break;
+    for (const candidate of blocks.slice(0, currentIndex)) {
       if (
         candidate.accumulateGroup === current.accumulateGroup &&
         candidate.source.trim().length > 0
       ) {
-        priorSources.unshift(candidate.source);
+        priorSources.push(candidate.source);
       }
     }
   }
