@@ -42,6 +42,46 @@ jobs:
             exit 1
           fi
 
+      - name: Download latest TalkTalk WASM
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_url="https://wip.talktalk.fyi"
+          cache_bust="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          temp_dir="$(mktemp -d)"
+          trap 'rm -rf "$temp_dir"' EXIT
+
+          curl -fsSL --retry 3 \
+            "$base_url/version.txt?release=$cache_bust-before" \
+            -o "$temp_dir/version-before.txt"
+
+          for file in talk_wasm.js talk_wasm.d.ts talk_wasm_bg.wasm; do
+            curl -fsSL --retry 3 \
+              "$base_url/pkg/$file?release=$cache_bust" \
+              -o "$temp_dir/$file"
+          done
+
+          curl -fsSL --retry 3 \
+            "$base_url/version.txt?release=$cache_bust-after" \
+            -o "$temp_dir/version-after.txt"
+
+          if ! cmp -s "$temp_dir/version-before.txt" "$temp_dir/version-after.txt"; then
+            echo "TalkTalk WASM changed while it was being downloaded; retry the release" >&2
+            exit 1
+          fi
+
+          build_sha="$(sed -n 's/^latest build: //p' "$temp_dir/version-after.txt")"
+          if [[ -z "$build_sha" ]]; then
+            echo "Could not identify the downloaded TalkTalk WASM build" >&2
+            exit 1
+          fi
+
+          cp "$temp_dir"/talk_wasm.js \
+            "$temp_dir"/talk_wasm.d.ts \
+            "$temp_dir"/talk_wasm_bg.wasm \
+            vendor/talk-wasm/
+          echo "Using TalkTalk WASM build $build_sha"
+
       - name: Test
         run: npm test
 
