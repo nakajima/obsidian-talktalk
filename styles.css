@@ -72,6 +72,7 @@
 
 .talktalk-code {
   margin: 0;
+  padding-bottom: var(--size-4-2, 8px);
   border-radius: var(--radius-s);
   cursor: text;
 }
