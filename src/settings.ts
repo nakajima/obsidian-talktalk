@@ -65,6 +65,11 @@ export class TalkTalkSettingTab extends PluginSettingTab {
             button.setButtonText("Check for updates");
           }
         });
+      })
+      .addButton((button) => {
+        button.setButtonText("Reload").onClick(() => {
+          window.location.reload();
+        });
       });
 
     void overrideStatus(this.app, this.pluginDir).then((status) => {
