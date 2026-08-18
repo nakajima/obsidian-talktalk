@@ -1,6 +1,6 @@
 {
   "name": "obsidian-talktalk",
-  "version": "0.5.7",
+  "version": "0.5.8",
   "private": true,
   "description": "Obsidian plugin: run, analyze, and highlight TalkTalk code blocks with WebAssembly",
   "scripts": {
